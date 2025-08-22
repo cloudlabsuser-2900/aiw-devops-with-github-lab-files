@@ -228,7 +228,7 @@ resource kv 'Microsoft.KeyVault/vaults@2022-07-01' = {
     tags: resourceTags
     properties: {
       contentType: 'endpoint url of the images cdn'
-      value: 'https://${cdnprofile_imagesendpoint.properties.hostName}'
+      value: 'https://${frontDoor.properties.frontendEndpoints[0].hostName}'
     }
   }
 
@@ -248,7 +248,7 @@ resource kv 'Microsoft.KeyVault/vaults@2022-07-01' = {
     tags: resourceTags
     properties: {
       contentType: 'endpoint url (cdn endpoint) of the ui'
-      value: cdnprofile_ui2endpoint.properties.hostName
+      value: frontDoor.properties.frontendEndpoints[1].hostName
     }
   }
 
