@@ -787,7 +787,130 @@ resource imageclassifierstgacc 'Microsoft.Storage/storageAccounts@2022-05-01' = 
 }
 
 //
-// cdn
+
+//Azure Front Door (CDN) for product images, old website, and new website
+
+resource frontDoor 'Microsoft.Network/frontDoors@2021-06-01' = {
+  name: '${prefixHyphenated}-fd${suffix}'
+  location: 'global'
+  tags: resourceTags
+  properties: {
+    routingRules: [
+      {
+        name: 'ImagesRoutingRule'
+        frontendEndpoints: [
+          imagesFrontendEndpoint.name
+        ]
+        acceptedProtocols: [
+          'Https'
+        ]
+        patternsToMatch: [
+          '/images/*'
+        ]
+        routeConfiguration: {
+          '@odata.type': '#Microsoft.Network.FrontDoor.Models.FrontdoorForwardingConfiguration'
+          forwardingProtocol: 'MatchRequest'
+          backendPool: imagesBackendPool.name
+        }
+        enabledState: 'Enabled'
+      }
+      {
+        name: 'UiRoutingRule'
+        frontendEndpoints: [
+          uiFrontendEndpoint.name
+        ]
+        acceptedProtocols: [
+          'Https'
+        ]
+        patternsToMatch: [
+          '/*'
+        ]
+        routeConfiguration: {
+          '@odata.type': '#Microsoft.Network.FrontDoor.Models.FrontdoorForwardingConfiguration'
+          forwardingProtocol: 'MatchRequest'
+          backendPool: uiBackendPool.name
+        }
+        enabledState: 'Enabled'
+      }
+    ]
+    backendPools: [
+      {
+        name: 'imagesBackendPool'
+        backends: [
+          {
+            address: replace(replace(productimagesstgacc.properties.primaryEndpoints.blob, 'https://', ''), '/', '')
+            httpPort: 80
+            httpsPort: 443
+            enabledState: 'Enabled'
+            priority: 1
+            weight: 50
+          }
+        ]
+        loadBalancingSettings: {
+          id: 'DefaultLoadBalancingSettings'
+        }
+        healthProbeSettings: {
+          id: 'DefaultProbeSettings'
+        }
+      }
+      {
+        name: 'uiBackendPool'
+        backends: [
+          {
+            address: replace(replace(ui2stgacc.properties.primaryEndpoints.web, 'https://', ''), '/', '')
+            httpPort: 80
+            httpsPort: 443
+            enabledState: 'Enabled'
+            priority: 1
+            weight: 50
+          }
+        ]
+        loadBalancingSettings: {
+          id: 'DefaultLoadBalancingSettings'
+        }
+        healthProbeSettings: {
+          id: 'DefaultProbeSettings'
+        }
+      }
+    ]
+    frontendEndpoints: [
+      {
+        name: 'imagesFrontendEndpoint'
+        hostName: '${prefixHyphenated}-images${suffix}.azurefd.net'
+        sessionAffinityEnabledState: 'Disabled'
+        sessionAffinityTtlSeconds: 0
+        webApplicationFirewallPolicyLink: null
+      }
+      {
+        name: 'uiFrontendEndpoint'
+        hostName: '${prefixHyphenated}-ui2${suffix}.azurefd.net'
+        sessionAffinityEnabledState: 'Disabled'
+        sessionAffinityTtlSeconds: 0
+        webApplicationFirewallPolicyLink: null
+      }
+    ]
+    loadBalancingSettings: [
+      {
+        name: 'DefaultLoadBalancingSettings'
+        sampleSize: 4
+        successfulSamplesRequired: 2
+        additionalLatencyMilliseconds: 0
+      }
+    ]
+    healthProbeSettings: [
+      {
+        name: 'DefaultProbeSettings'
+        path: '/'
+        protocol: 'Https'
+        intervalInSeconds: 120
+        healthProbeMethod: 'HEAD'
+      }
+    ]
+    enabledState: 'Enabled'
+  }
+}
+//
+/* cdn
 //
 
 resource cdnprofile 'Microsoft.Cdn/profiles@2022-05-01-preview' = {
@@ -1037,7 +1160,7 @@ resource cdnprofile_ui2endpoint 'Microsoft.Cdn/profiles/endpoints@2022-05-01-pre
 }
 
 
-//
+*/
 // container registry
 //
 
@@ -1177,4 +1300,5 @@ resource aks 'Microsoft.ContainerService/managedClusters@2024-10-02-preview' = {
 ////////////////////////////////////////////////////////////////////////////////
 
 output cartsApiEndpoint string = 'https://${cartsapiaca.properties.configuration.ingress.fqdn}'
-output uiCdnEndpoint string = 'https://${cdnprofile_ui2endpoint.properties.hostName}'
+output uiCdnEndpoint string = 'https://${frontDoor.properties.frontendEndpoints[1].hostName}'
+
