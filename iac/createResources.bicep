@@ -791,7 +791,7 @@ resource imageclassifierstgacc 'Microsoft.Storage/storageAccounts@2022-05-01' = 
 //Azure Front Door (CDN) for product images, old website, and new website
 
 resource frontDoor 'Microsoft.Network/frontDoors@2021-06-01' = {
-  name: '${prefixHyphenated}-fd${suffix}'
+  name: '${prefixHyphenated}-fd${env}'
   location: 'global'
   tags: resourceTags
   properties: {
@@ -799,7 +799,7 @@ resource frontDoor 'Microsoft.Network/frontDoors@2021-06-01' = {
       {
         name: 'ImagesRoutingRule'
         frontendEndpoints: [
-          imagesFrontendEndpoint.name
+          'imagesFrontendEndpoint'
         ]
         acceptedProtocols: [
           'Https'
@@ -810,14 +810,14 @@ resource frontDoor 'Microsoft.Network/frontDoors@2021-06-01' = {
         routeConfiguration: {
           '@odata.type': '#Microsoft.Network.FrontDoor.Models.FrontdoorForwardingConfiguration'
           forwardingProtocol: 'MatchRequest'
-          backendPool: imagesBackendPool.name
+          backendPool: 'imagesBackendPool'
         }
         enabledState: 'Enabled'
       }
       {
         name: 'UiRoutingRule'
         frontendEndpoints: [
-          uiFrontendEndpoint.name
+          'uiFrontendEndpoint'
         ]
         acceptedProtocols: [
           'Https'
@@ -828,7 +828,7 @@ resource frontDoor 'Microsoft.Network/frontDoors@2021-06-01' = {
         routeConfiguration: {
           '@odata.type': '#Microsoft.Network.FrontDoor.Models.FrontdoorForwardingConfiguration'
           forwardingProtocol: 'MatchRequest'
-          backendPool: uiBackendPool.name
+          backendPool: 'uiBackendPool'
         }
         enabledState: 'Enabled'
       }
@@ -876,17 +876,21 @@ resource frontDoor 'Microsoft.Network/frontDoors@2021-06-01' = {
     frontendEndpoints: [
       {
         name: 'imagesFrontendEndpoint'
-        hostName: '${prefixHyphenated}-images${suffix}.azurefd.net'
+           properties: {
+        hostName: '${prefixHyphenated}-images${env}.azurefd.net'
         sessionAffinityEnabledState: 'Disabled'
         sessionAffinityTtlSeconds: 0
         webApplicationFirewallPolicyLink: null
+           }
       }
       {
         name: 'uiFrontendEndpoint'
-        hostName: '${prefixHyphenated}-ui2${suffix}.azurefd.net'
+           properties: {
+        hostName: '${prefixHyphenated}-ui2${env}.azurefd.net'
         sessionAffinityEnabledState: 'Disabled'
         sessionAffinityTtlSeconds: 0
         webApplicationFirewallPolicyLink: null
+           }
       }
     ]
     loadBalancingSettings: [
@@ -1300,5 +1304,5 @@ resource aks 'Microsoft.ContainerService/managedClusters@2024-10-02-preview' = {
 ////////////////////////////////////////////////////////////////////////////////
 
 output cartsApiEndpoint string = 'https://${cartsapiaca.properties.configuration.ingress.fqdn}'
-output uiCdnEndpoint string = 'https://${frontDoor.properties.frontendEndpoints[1].hostName}'
+//output uiCdnEndpoint string = 'https://${frontDoor.properties.frontendEndpoints[1].hostName}'
 
