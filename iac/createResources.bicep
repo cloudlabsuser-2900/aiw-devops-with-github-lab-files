@@ -865,7 +865,7 @@ resource deploymentScript 'Microsoft.Resources/deploymentScripts@2020-10-01' = {
     roleAssignment
   ]
   properties: {
-    azPowerShellVersion: '3.0'
+    azPowerShellVersion: '11.0'
     scriptContent: loadTextContent('./scripts/enable-static-website.ps1')
     retentionInterval: 'PT4H'
     environmentVariables: [
@@ -890,6 +890,9 @@ resource ui2stgacc 'Microsoft.Storage/storageAccounts@2022-09-01' = {
     name: 'Standard_LRS'
   }
   kind: 'StorageV2'
+    properties: {
+  allowBlobPublicAccess: true
+}
 
   // blob service
   resource ui2stgacc_blobsvc 'blobServices' = {
@@ -967,6 +970,10 @@ resource imageclassifierstgacc 'Microsoft.Storage/storageAccounts@2022-09-01' = 
     name: 'Standard_LRS'
   }
   kind: 'StorageV2'
+properties: {
+  allowBlobPublicAccess: true
+}
+
 
   // blob service
   resource imageclassifierstgacc_blobsvc 'blobServices' = {
