@@ -179,25 +179,23 @@ jobs:
               --destination '$web' \
               --source src/ContosoTraders.Ui.Website/build \
               --overwrite true
-      - name: purge CDN endpoint (safe)
+      - name: purge AFD endpoint (safe)
         uses: azure/cli@v2
         with:
           inlineScript: |
-            PROFILE_EXISTS=$(az cdn profile list -g ${{ env.RESOURCE_GROUP_NAME }}${{ secrets.ENVIRONMENT }} --query "[?name=='${{ env.CDN_PROFILE_NAME }}${{ secrets.ENVIRONMENT }}'] | length(@)" -o tsv)
-            
+            RG=${{ env.RESOURCE_GROUP_NAME }}${{ secrets.ENVIRONMENT }}
+            PROFILE_NAME=${{ env.CDN_PROFILE_NAME }}${{ secrets.ENVIRONMENT }}
+            ENDPOINT_NAME=${{ env.UI_CDN_ENDPOINT_NAME }}${{ secrets.ENVIRONMENT }}
+
+            PROFILE_EXISTS=$(az afd profile list -g $RG --query "[?name=='$PROFILE_NAME'] | length(@)" -o tsv)
+
             if [ "$PROFILE_EXISTS" -eq "1" ]; then
-                ENDPOINT_NAME=$(az cdn endpoint list \
-                  -g ${{ env.RESOURCE_GROUP_NAME }}${{ secrets.ENVIRONMENT }} \
-                  --profile-name ${{ env.CDN_PROFILE_NAME }}${{ secrets.ENVIRONMENT }} \
-                  --query "[0].name" -o tsv)
-                
-                echo "Purging CDN endpoint: $ENDPOINT_NAME"
-                
-                az cdn endpoint purge --no-wait \
+                echo "Purging AFD endpoint: $ENDPOINT_NAME (profile: $PROFILE_NAME)"
+                az afd endpoint purge \
                   --content-paths "/*" \
-                  -n $ENDPOINT_NAME \
-                  -g ${{ env.RESOURCE_GROUP_NAME }}${{ secrets.ENVIRONMENT }} \
-                  --profile-name ${{ env.CDN_PROFILE_NAME }}${{ secrets.ENVIRONMENT }}
+                  --endpoint-name $ENDPOINT_NAME \
+                  --profile-name $PROFILE_NAME \
+                  --resource-group $RG
             else
-                echo "CDN profile '${{ env.CDN_PROFILE_NAME }}${{ secrets.ENVIRONMENT }}' not found. Skipping purge."
+                echo "AFD profile '$PROFILE_NAME' not found. Skipping purge."
             fi
