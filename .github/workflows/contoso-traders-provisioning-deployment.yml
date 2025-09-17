@@ -170,24 +170,26 @@ jobs:
       - name: npm run build
         run: npm run build
         working-directory: src/ContosoTraders.Ui.Website
-      - name: deploy ui to storage
-        uses: azure/CLI@v1
+      
+- name: deploy to storage
+        uses: azure/cli@v2
         with:
           inlineScript: |
-            mkdir -p /root/.azure/bin/
-            curl -o /root/.azure/bin/azcopy https://experienceazure.blob.core.windows.net/templates/devops-devsecops-hackathon/azcopy/azcopy
-            chmod +x /root/.azure/bin/azcopy
-            az storage blob sync --account-name '${{ env.UI_STORAGE_ACCOUNT_NAME }}${{ vars.SUFFIX }}' -c '$web' -s 'src/ContosoTraders.Ui.Website/build'
+            az storage blob upload-batch \
+              --account-name ${{ env.UI_STORAGE_ACCOUNT_NAME }}${{ secrets.ENVIRONMENT }} \
+              --destination '$web' \
+              --source src/ContosoTraders.Ui.Website/build \
+              --overwrite true
       - name: purge ui cdn endpoint
         uses: azure/CLI@v1
         with:
-          inlineScript: az afd endpoint purge  --no-wait   --content-paths '/*' --endpoint-name "${{ env.UI_CDN_ENDPOINT_NAME }}${{ vars.SUFFIX }}" --profile-name "${{ env.CDN_PROFILE_NAME }}${{ vars.SUFFIX }}" --resource-group "${{ env.RESOURCE_GROUP_NAME }}${{ vars.SUFFIX }}"
+          inlineScript: az afd endpoint purge  --no-wait   --content-paths '/*' --endpoint-name "${{ env.UI_CDN_ENDPOINT_NAME }}${{ secrets.ENVIRONMENT }}" --profile-name "${{ env.CDN_PROFILE_NAME }}${{ secrets.ENVIRONMENT }}" --resource-group "${{ env.RESOURCE_GROUP_NAME }}${{ secrets.ENVIRONMENT }}"
 
       - name: get ui cdn endpoint
         uses: azure/CLI@v1
         id: get-uiCdnEndpoint
         with:
-          inlineScript: echo "uiCdnEndpoint"="$(az keyvault secret show --vault-name ${{ env.KV_NAME }}${{ vars.SUFFIX }} --name uiCdnEndpoint --query value -o tsv)" >> $GITHUB_OUTPUT
+          inlineScript: echo "uiCdnEndpoint"="$(az keyvault secret show --vault-name ${{ env.KV_NAME }}${{ secrets.ENVIRONMENT }} --name uiCdnEndpoint --query value -o tsv)" >> $GITHUB_OUTPUT
       - name: register auth callback (UI CDN)
         if: ${{ env.AADUSERNAME != '' && env.AADPASSWORD != '' }}
         uses: azure/CLI@v1
@@ -201,4 +203,5 @@ jobs:
       - name: display ui cdn endpoint
         uses: azure/CLI@v1
         with:
-          inlineScript: echo UI CDN endpoint accessible at https://$(az keyvault secret show --vault-name ${{ env.KV_NAME }}${{ vars.SUFFIX }} --name uiCdnEndpoint --query value -o tsv)
+          inlineScript: echo UI CDN endpoint accessible at https://$(az keyvault secret show --vault-name ${{ env.KV_NAME }}${{ secrets.ENVIRONMENT }} --name uiCdnEndpoint --query value -o tsv)
+            fi
